@@ -36,4 +36,28 @@ impl SearchIndex {
     pub fn search(&self, term: &str) -> Option<&Vec<usize>> {
         self.index.get(&term.to_lowercase())
     }
+
+    pub fn search_multiple(&self, query: &str) -> Option<Vec<usize>> {
+        let query_lower = query.to_lowercase();
+        let mut words = query_lower.split_whitespace();
+
+        if let Some(first) = words.next() {
+            if let Some(mut result) = self.index.get(first).cloned() {
+                for word in words {
+                    if let Some(ids) = self.index.get(word) {
+                        result.retain(|id| ids.contains(id)); //interseção
+                    } else {
+                        return None; //se um dos termos não foi encontrado
+                    }
+                }
+                Some(result)
+            } else {
+                None
+            }
+        } else {
+            None
+        }
+    }
+
+    
 }
