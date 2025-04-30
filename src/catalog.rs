@@ -49,6 +49,17 @@ impl ProductCatalog {
         Ok(ProductCatalog { products, by_id })
     }
 
+    pub fn new(products: Vec<Product>) -> Self {
+        let by_id = products
+            .iter()
+            .map(|p| (p.id, p.clone()))
+            .collect();
+
+        Self { products, by_id }
+    }
+
+
+
     pub fn get_by_id(&self, id: usize) -> Option<&Product> {
         self.by_id.get(&id)
     }

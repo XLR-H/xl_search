@@ -2,54 +2,65 @@ mod catalog;
 mod search;
 mod cache;
 
-use catalog::{ProductCatalog, Product};
-use search::SearchIndex;
+use std::io::{self, Write};
+use crate::catalog::ProductCatalog;
+use crate::search::SearchIndex;
 use crate::cache::SearchCache;
-// use serde::Deserialize;   não está usando esta linha,pq?
 
+fn main() {
+    let catalog = match ProductCatalog::from_csv("data/catalog.csv") {
+        Ok(c) => c,
+        Err(e) => {
+            println!("Erro carregando catálogo: {}", e);
+            return;
+        }
+    };
 
-fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let catalog = ProductCatalog::from_csv("data/produtos.csv")?;
-    let search_index = SearchIndex::from_catalog(&catalog);
-
+    let index = SearchIndex::from_catalog(&catalog);
     let mut cache = SearchCache::new();
 
-    use std::io::{self, Write};
-
     loop {
-        print!("Digite um termo de busca (ou 'sair'): ");
-        io::stdout().flush()?; // exibe o prompt sem esperar nova linha
+        print!("Digite o termo de busca (ou 'sair' para terminar): ");
+        io::stdout().flush().unwrap();
 
         let mut input = String::new();
-        io::stdin().read_line(&mut input)?;
-        let term = input.trim().to_lowercase();
+        if io::stdin().read_line(&mut input).is_err() {
+            println!("Erro lendo entrada.");
+            continue;
+        }
 
-        if term == "sair" {
+        let input = input.trim().to_lowercase();
+        if input == "sair" {
             break;
         }
 
-        if let Some(result) = cache.get(&term) {
-            println!("(cache) Resultados encontrados:");
-            for id in result {
-                if let Some(product) = catalog.by_id.get(id) {
-                    println!("- {} {}", product.brand, product.product_type);
+        let results = if let Some(cached) = cache.get(&input) {
+            Some(cached.clone())
+        } else {
+            let result = index.search_multiple(&input);
+            if let Some(ref ids) = result {
+                cache.insert(input.clone(), ids.clone());
+            }
+            result
+        };
+
+        match results {
+            Some(ids) => {
+                println!("Produtos encontrados:");
+                for id in ids {
+                    if let Some(product) = catalog.get_by_id(id) {
+                        println!(
+                            "- {} {} ({}, {}, {})",
+                            product.brand, product.group, product.vol, product.flavor, product.product_type
+                        );
+                    }
                 }
             }
-        } else {
-            match search_index.search(&term) {
-                Some(result) => {
-                    println!("(busca direta) Resultados encontrados:");
-                    for id in result {
-                        if let Some(product) = catalog.by_id.get(id) {
-                            println!("- {} {}", product.brand, product.product_type);
-                        }
-                    }
-                    cache.insert(term.clone(), result.clone());
-                }
-                None => println!("Nenhum resultado encontrado."),
+            None => {
+                println!("Nenhum produto encontrado.");
             }
         }
     }
 
-    Ok(())
+    println!("Programa finalizado!");
 }
