@@ -20,7 +20,7 @@ fn main() {
     let mut cache = SearchCache::new();
 
     loop {
-        print!("Digite o termo de busca (ou 'sair' para terminar): ");
+        print!("\nDigite o termo de busca (ou 'sair' para terminar): ");
         io::stdout().flush().unwrap();
 
         let mut input = String::new();
@@ -46,21 +46,21 @@ fn main() {
 
         match results {
             Some(ids) => {
-                println!("Produtos encontrados:");
+                println!("\nProdutos encontrados:");
                 for id in ids {
                     if let Some(product) = catalog.get_by_id(id) {
                         println!(
                             "- {} {} ({}, {}, {})",
-                            product.brand, product.group, product.vol, product.flavor, product.product_type
+                            product.product_type, product.brand, product.vol, product.flavor, product.group
                         );
                     }
                 }
             }
             None => {
-                println!("Nenhum produto encontrado.");
+                println!("\nNenhum produto encontrado.");
             }
         }
     }
 
-    println!("Programa finalizado!");
+    println!("\nPrograma finalizado!");
 }
